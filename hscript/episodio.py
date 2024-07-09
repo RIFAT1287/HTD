@@ -2,89 +2,89 @@ from bs4 import BeautifulSoup
 import requests
 import os
 
-# Função para procurar pelos links do MediaFire e do Google Drive em uma página de episódio
-def encontrar_links(url_episodio):
-    response = requests.get(url_episodio)
+# Function to find MediaFire and Google Drive links on an episode page
+def find_links(episode_url):
+    response = requests.get(episode_url)
     soup = BeautifulSoup(response.content, "html.parser")
     mediafire_links = soup.find_all("a", href=lambda href: href and "mediafire.com" in href)
     drive_links = soup.find_all("a", href=lambda href: href and "drive.google.com" in href)
     return mediafire_links, drive_links
 
-# Função para baixar o arquivo de vídeo do link
-def baixar_video(link, episode_title, directory):
+# Function to download the video file from the link
+def download_video(link, episode_title, directory):
     if "mediafire.com" in link:
-        # Realiza a solicitação HTTP para o URL fornecido
+        # Make an HTTP request to the provided URL
         response = requests.get(link)
 
-        # Verifica se a solicitação foi bem-sucedida
+        # Check if the request was successful
         if response.status_code == 200:
-            # Extrai o conteúdo HTML da resposta
+            # Extract the HTML content from the response
             html = response.text
 
-            # Utiliza BeautifulSoup para analisar o HTML
+            # Use BeautifulSoup to parse the HTML
             soup = BeautifulSoup(html, 'html.parser')
 
-            # Encontra o link direto de download
+            # Find the direct download link
             download_link = soup.find('a', class_='input popsok')['href']
 
-            # Define o nome do arquivo a partir do título do episódio
+            # Define the file name from the episode title
             file_name = f"{episode_title}.mp4"
 
-            # Define o caminho completo para salvar o arquivo
+            # Define the full path to save the file
             file_path = os.path.join(directory, file_name)
 
-            # Cria o diretório de destino se ainda não existir
+            # Create the destination directory if it does not exist
             if not os.path.exists(directory):
                 os.makedirs(directory)
 
-            # Baixa o arquivo
+            # Download the file
             with open(file_path, 'wb') as file:
                 response = requests.get(download_link)
                 file.write(response.content)
 
-            print('Arquivo baixado com sucesso:', file_path)
+            print('File successfully downloaded:', file_path)
         else:
-            print("Falha ao obter o conteúdo da página. Status code:", response.status_code)
+            print("Failed to get the page content. Status code:", response.status_code)
     elif "drive.google.com" in link:
-        # Se for um link do Google Drive, apenas imprime o link e avisa no console
-        print("Link do Google Drive encontrado:", link)
-        print("Por favor, baixe o arquivo manualmente.")
+        # If it's a Google Drive link, just print the link and notify in the console
+        print("Google Drive link found:", link)
+        print("Please download the file manually.")
     else:
-        print("Link não suportado:", link)
+        print("Unsupported link:", link)
 
-# Link do episódio
-url_episodio = input("Digite o Link do episódio que deseja baixar: ")
+# Episode link
+episode_url = input("Enter the episode link you want to download: ")
 
-# Extrair parte final do link como o nome do episódio
-episode_title = os.path.basename(url_episodio[:-1])  # Remove a barra no final e extrai a parte final do link
+# Extract the final part of the link as the episode title
+episode_title = os.path.basename(episode_url[:-1])  # Remove the trailing slash and extract the final part of the link
 
-# Procurar pelos links do MediaFire e do Google Drive para o episódio atual
-mediafire_links, drive_links = encontrar_links(url_episodio)
+# Find MediaFire and Google Drive links for the current episode
+mediafire_links, drive_links = find_links(episode_url)
 
-# Diretório de destino para salvar os arquivos
+# Destination directory to save the files
 directory = "downloads"
 
-print("Episódio:", episode_title)
-print("Link:", url_episodio)
+print("Episode:", episode_title)
+print("Link:", episode_url)
 
-# Baixar os arquivos do MediaFire
+# Download files from MediaFire
 for mediafire_link in mediafire_links:
-    baixar_video(mediafire_link['href'], episode_title, directory)
+    download_video(mediafire_link['href'], episode_title, directory)
 
-# Salvar os links do Google Drive em um arquivo txt
+# Save Google Drive links in a txt file
 if drive_links:
-    # Cria o diretório de destino se ainda não existir
+    # Create the destination directory if it does not exist
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    # Define o caminho completo para salvar o arquivo txt
+    # Define the full path to save the txt file
     txt_file_path = os.path.join(directory, f"{episode_title}_google_drive_links.txt")
 
-    # Escreve os links no arquivo txt
+    # Write the links to the txt file
     with open(txt_file_path, 'w') as txt_file:
         for link in drive_links:
             txt_file.write(link['href'] + '\n')
 
-    print(f"Os links do Google Drive para o episódio {episode_title} foram salvos em: {txt_file_path}\n")
+    print(f"The Google Drive links for episode {episode_title} have been saved in: {txt_file_path}\n")
 else:
-    print("Nenhum link do Google Drive encontrado.\n")
+    print("No Google Drive links found.\n")
